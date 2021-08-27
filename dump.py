@@ -300,16 +300,58 @@ def start_dump(session, ipa_name):
         session.detach()
 
 
-def list_apps(remote):
+def list_apps_remote(remote):
     return list_applications(get_remote_iphone(remote))
 
+def list_apps_usb():
+    return list_applications(get_usb_iphone())
 
-def main(remote, target, output_ipa):
+def remote_iphone(remote, target, output_ipa):
     exit_code = 0
     ssh = None
 
     device = get_remote_iphone(remote)
     # device = get_usb_iphone() // USB Connected IPHONE
+
+    name_or_bundleid = target
+    output_ipa = output_ipa
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(Host, port=Port, username=User, password=Password, key_filename=KeyFileName)
+
+        create_dir(PAYLOAD_PATH)
+        (session, display_name, bundle_identifier) = open_target_app(device, name_or_bundleid)
+        if output_ipa is None:
+            output_ipa = display_name
+        output_ipa = re.sub('\.ipa$', '', output_ipa)
+        if session:
+            start_dump(session, output_ipa)
+    except paramiko.ssh_exception.NoValidConnectionsError as e:
+        print(e)
+        # print('Try specifying -H/--hostname and/or -p/--port')
+        exit_code = 1
+    except paramiko.AuthenticationException as e:
+        print(e)
+        # print('Try specifying -u/--username and/or -P/--password')
+        exit_code = 1
+    except Exception as e:
+        print('*** Caught exception: %s: %s' % (e.__class__, e))
+        traceback.print_exc()
+        exit_code = 1
+
+    if ssh:
+        ssh.close()
+
+    if os.path.exists(PAYLOAD_PATH):
+        shutil.rmtree(PAYLOAD_PATH)
+    return exit_code
+
+
+def usb_iphone(target, output_ipa):
+    exit_code = 0
+    ssh = None
+    device = get_usb_iphone()
 
     name_or_bundleid = target
     output_ipa = output_ipa
