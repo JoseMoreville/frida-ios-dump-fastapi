@@ -37,14 +37,15 @@ def ipa_stream(ipa):
 
 @app.post("/application", response_class=FileResponse)
 def get_user_app_name(request: Request, package: RequestedApplication):
-
     if os.path.isfile(f'./ipas/{package.application_package}'):
         return StreamingResponse(ipa_stream(f'./ipas/{package.application_package}'),
                                  media_type='application/octet-stream')
 
     # Dump Application from iphone
     try:
-        ipa = remote_iphone(remote='192.168.155:12487', target='app_package', output_ipa='output_name')
+        ipa = remote_iphone(remote='192.168.155:12487', target=package.application_package,
+                            output_ipa=package.application_package)
     except:
-        ipa = usb_iphone(target='app_package', output_ipa='output_name')
-    return FileResponse(ipa_stream(ipa), media_type='application/octet-stream .ipa')
+        ipa = usb_iphone(target=package.application_package, output_ipa=package.application_package)
+    return StreamingResponse(ipa_stream(package.application_package),
+                             media_type='application/octet-stream')
