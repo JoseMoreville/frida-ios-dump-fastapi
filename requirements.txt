@@ -1,19 +1,24 @@
-asn1crypto
-bcrypt
-cffi
-colorama
-cryptography
-enum34
-frida-tools
-idna
-ipaddress
-paramiko
-prompt-toolkit
-pyasn1
-pycparser
-Pygments
-PyNaCl
-scp
-six
-tqdm
-wcwidth
+aiofiles==0.7.0
+asgiref==3.4.1
+bcrypt @ file:///Users/runner/miniforge3/conda-bld/bcrypt_1625577013062/work
+cffi @ file:///Users/runner/miniforge3/conda-bld/cffi_1625835329396/work
+click==8.0.1
+colorama @ file:///home/conda/feedstock_root/build_artifacts/colorama_1602866480661/work
+cryptography @ file:///Users/runner/miniforge3/conda-bld/cryptography_1616851523607/work
+fastapi @ file:///home/conda/feedstock_root/build_artifacts/fastapi_1629842381613/work
+frida==15.0.18
+frida-tools==10.2.1
+h11==0.12.0
+paramiko @ file:///home/conda/feedstock_root/build_artifacts/paramiko_1598988093657/work
+prompt-toolkit==3.0.20
+pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1593275161868/work
+pydantic @ file:///Users/runner/miniforge3/conda-bld/pydantic_1620820014403/work
+Pygments==2.10.0
+PyNaCl @ file:///Users/runner/miniforge3/conda-bld/pynacl_1618857113622/work
+scp @ file:///home/conda/feedstock_root/build_artifacts/scp_1625860107718/work
+six @ file:///home/conda/feedstock_root/build_artifacts/six_1620240208055/work
+starlette @ file:///home/conda/feedstock_root/build_artifacts/starlette-recipe_1612371539619/work
+tqdm @ file:///home/conda/feedstock_root/build_artifacts/tqdm_1629742505296/work
+typing-extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1622748266870/work
+uvicorn==0.15.0
+wcwidth==0.2.5

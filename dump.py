@@ -18,6 +18,7 @@ import tempfile
 import subprocess
 import re
 import paramiko
+from frida.core import Device
 from paramiko import SSHClient
 from scp import SCPClient
 from tqdm import tqdm
@@ -44,6 +45,12 @@ PAYLOAD_PATH = os.path.join(TEMP_DIR, PAYLOAD_DIR)
 file_dict = {}
 
 finished = threading.Event()
+
+
+def get_remote_iphone(iphone) -> Device:
+    manager = frida.get_device_manager()
+    remote_device = manager.add_remote_device(iphone)
+    return remote_device
 
 
 def get_usb_iphone():
@@ -93,8 +100,9 @@ def generate_ipa(path, display_name):
         print(e)
         finished.set()
 
+
 def on_message(message, data):
-    t = tqdm(unit='B',unit_scale=True,unit_divisor=1024,miniters=1)
+    t = tqdm(unit='B', unit_scale=True, unit_divisor=1024, miniters=1)
     last_sent = [0]
 
     def progress(filename, size, sent):
@@ -116,7 +124,7 @@ def on_message(message, data):
             scp_from = dump_path
             scp_to = PAYLOAD_PATH + '/'
 
-            with SCPClient(ssh.get_transport(), progress = progress, socket_timeout = 60) as scp:
+            with SCPClient(ssh.get_transport(), progress=progress, socket_timeout=60) as scp:
                 scp.get(scp_from, scp_to)
 
             chmod_dir = os.path.join(PAYLOAD_PATH, os.path.basename(dump_path))
@@ -134,7 +142,7 @@ def on_message(message, data):
 
             scp_from = app_path
             scp_to = PAYLOAD_PATH + '/'
-            with SCPClient(ssh.get_transport(), progress = progress, socket_timeout = 60) as scp:
+            with SCPClient(ssh.get_transport(), progress=progress, socket_timeout=60) as scp:
                 scp.get(scp_from, scp_to, recursive=True)
 
             chmod_dir = os.path.join(PAYLOAD_PATH, os.path.basename(app_path))
@@ -149,6 +157,7 @@ def on_message(message, data):
         if 'done' in payload:
             finished.set()
     t.close()
+
 
 def compare_applications(a, b):
     a_is_running = a.pid != 0
@@ -227,6 +236,8 @@ def list_applications(device):
         else:
             print(line_format % (application.pid, application.name, application.identifier))
 
+    return name_column_width
+
 
 def load_js_file(session, filename):
     source = ''
@@ -271,7 +282,7 @@ def open_target_app(device, name_or_bundleid):
         else:
             session = device.attach(pid)
     except Exception as e:
-        print(e) 
+        print(e)
 
     return session, display_name, bundle_identifier
 
@@ -289,6 +300,52 @@ def start_dump(session, ipa_name):
         session.detach()
 
 
+def list_apps(remote):
+    return list_applications(get_remote_iphone(remote))
+
+
+def main(remote, target, output_ipa):
+    exit_code = 0
+    ssh = None
+
+    device = get_remote_iphone(remote)
+    # device = get_usb_iphone() // USB Connected IPHONE
+
+    name_or_bundleid = target
+    output_ipa = output_ipa
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(Host, port=Port, username=User, password=Password, key_filename=KeyFileName)
+
+        create_dir(PAYLOAD_PATH)
+        (session, display_name, bundle_identifier) = open_target_app(device, name_or_bundleid)
+        if output_ipa is None:
+            output_ipa = display_name
+        output_ipa = re.sub('\.ipa$', '', output_ipa)
+        if session:
+            start_dump(session, output_ipa)
+    except paramiko.ssh_exception.NoValidConnectionsError as e:
+        print(e)
+        # print('Try specifying -H/--hostname and/or -p/--port')
+        exit_code = 1
+    except paramiko.AuthenticationException as e:
+        print(e)
+        # print('Try specifying -u/--username and/or -P/--password')
+        exit_code = 1
+    except Exception as e:
+        print('*** Caught exception: %s: %s' % (e.__class__, e))
+        traceback.print_exc()
+        exit_code = 1
+
+    if ssh:
+        ssh.close()
+
+    if os.path.exists(PAYLOAD_PATH):
+        shutil.rmtree(PAYLOAD_PATH)
+    return exit_code
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='frida-ios-dump (by AloneMonkey v2.0)')
     parser.add_argument('-l', '--list', dest='list_applications', action='store_true', help='List the installed apps')
@@ -297,6 +354,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', dest='ssh_port', help='Specify SSH port')
     parser.add_argument('-u', '--user', dest='ssh_user', help='Specify SSH username')
     parser.add_argument('-P', '--password', dest='ssh_password', help='Specify SSH password')
+    parser.add_argument('-r', '--remote', dest='remote', help='Specify remote Iphone adresss')
     parser.add_argument('-K', '--key_filename', dest='ssh_key_filename', help='Specify SSH private key file path')
     parser.add_argument('target', nargs='?', help='Bundle identifier or display name of the target app')
 
@@ -309,7 +367,8 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(exit_code)
 
-    device = get_usb_iphone()
+    device = get_remote_iphone(args.remote)
+    # device = get_usb_iphone() // USB Connected IPHONE
 
     if args.list_applications:
         list_applications(device)
