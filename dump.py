@@ -409,8 +409,8 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(exit_code)
 
-    device = get_remote_iphone(args.remote)
-    # device = get_usb_iphone() // USB Connected IPHONE
+    #device = get_remote_iphone(args.remote)
+    device = get_usb_iphone()
 
     if args.list_applications:
         list_applications(device)
